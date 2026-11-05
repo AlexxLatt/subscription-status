@@ -1,0 +1,54 @@
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: subscription-postgres
+    environment:
+      POSTGRES_DB: subscription
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: local_dev_password
+    ports:
+      - "5436:5432"
+    volumes:
+      - subscription_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d subscription"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: subscription-service
+    networks:
+      - default
+      - microservices-network
+      - file-conversion-service_default
+    environment:
+      SPRING_CLOUD_CLIENT_HOSTNAME: subscription-service
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://subscription-postgres:5432/subscription
+      SPRING_DATASOURCE_USERNAME: app
+      SPRING_DATASOURCE_PASSWORD: local_dev_password
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    ports:
+      - "8092:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  subscription_postgres_data:
+
+networks:
+  microservices-network:
+    external: true
+    name: microservices-network
+
+  file-conversion-service_default:
+    external: true
+    name: file-conversion-service_default
