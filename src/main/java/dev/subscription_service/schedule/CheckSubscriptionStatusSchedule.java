@@ -22,7 +22,7 @@ public class CheckSubscriptionStatusSchedule {
     private final KafkaTemplate<String, String> kafkaTemplate;
 
 
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "${app.checkSub.cron}")
     public void checkSubscriptionStatus() {
         log.info("Schedule запустилась");
 
@@ -31,7 +31,7 @@ public class CheckSubscriptionStatusSchedule {
         log.info("Текущее время (UTC): {}", now.toInstant());
 
         List<Subscription> expiredSubscriptions =
-                subscriptionRepository.findAllByExpiresAtBeforeAndStatus(now, SubscriptionStatus.ACTIVE);
+                subscriptionRepository.findAllByExpiresAtBeforeAndStatus(now, SubscriptionStatus.PAID);
 
         log.info(" Найдено просроченных подписок: {}", expiredSubscriptions.size());
 
@@ -41,7 +41,7 @@ public class CheckSubscriptionStatusSchedule {
 
         for (Subscription subscription : expiredSubscriptions) {
             log.info(" Истекает подписка у: {}", subscription.getUsername());
-            subscription.setStatus(SubscriptionStatus.EXPIRED);
+            subscription.setStatus(SubscriptionStatus.FREE);
             subscriptionRepository.save(subscription);
 
             kafkaTemplate.send("expired-subscriptions", subscription.getUsername(), subscription.getUsername());

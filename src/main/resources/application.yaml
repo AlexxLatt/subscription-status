@@ -37,3 +37,7 @@ eureka:
     hostname: subscription-service
     prefer-ip-address: false
     instance-id: ${spring.application.name}:${eureka.instance.hostname}:${server.port}
+
+app:
+  checkSub:
+    cron: "0 * * * * *"
